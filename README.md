@@ -1,53 +1,55 @@
 # Minecraft Wiki MCP Server
 
-## 项目简介
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](README.md) [![中文](https://img.shields.io/badge/lang-中文-red.svg)](README_CN.md)
 
-一个基于 **MCP** 的 **Minecraft Wiki** 后端服务器，提供了对 Minecraft Wiki 内容的便捷访问。现已支持通过 **uvx** 快速部署，无需复杂配置即可开始使用。
+## Project Overview
 
-注意：本项目仅提供示例的 Minecraft wiki api，如果需要本地搭建api或需要SSE支持，请前往[此项目](https://github.com/rice-awa/minecraft-wiki-fetch-api)获取更多信息。
+A **MCP**-based **Minecraft Wiki** backend server that provides convenient access to Minecraft Wiki content. Now supports quick deployment via **uvx** without complex configuration.
 
-### 功能特性
+Note: This project only provides example Minecraft wiki API. If you need local API deployment or SSE support, please visit [this project](https://github.com/rice-awa/minecraft-wiki-fetch-api) for more information.
 
-- 🔍 **Wiki 内容搜索**: 支持关键词搜索 Minecraft Wiki 页面
-- 📄 **页面内容获取**: 获取完整的页面内容，支持 HTML 和 Markdown 格式
-- 📚 **批量页面获取**: 高效地批量获取多个页面内容
-- ✅ **页面存在性检查**: 快速检查页面是否存在
-- 🏥 **健康状态监控**: 监控后端 Wiki API 服务状态
-- 🚀 **一键部署**: 支持 uvx 快速安装和运行
-- ⚙️ **环境变量配置**: 灵活的配置方式，无需配置文件
-- 💻 **命令行参数**: 支持命令行参数覆盖配置
+### Features
 
-## 快速开始
+- 🔍 **Wiki Content Search**: Search Minecraft Wiki pages by keywords
+- 📄 **Page Content Retrieval**: Get complete page content in HTML and Markdown formats
+- 📚 **Batch Page Retrieval**: Efficiently retrieve multiple pages in batch
+- ✅ **Page Existence Check**: Quick check if a page exists
+- 🏥 **Health Monitoring**: Monitor backend Wiki API service status
+- 🚀 **One-Click Deployment**: Quick installation and running via uvx
+- ⚙️ **Environment Variables**: Flexible configuration without config files
+- 💻 **Command Line Arguments**: Override configuration via command line parameters
 
-### 🚀 推荐方式：使用 uvx (推荐)
+## Quick Start
 
-无需安装，直接运行：
+### 🚀 Recommended: Using uvx
+
+No installation required, run directly:
 
 ```bash
-# 基本使用（使用默认配置）
+# Basic usage (with default configuration)
 uvx mc-wiki-fetch-mcp
 
-# 使用自定义 API 地址
+# Use custom API URL
 MC_WIKI_API_BASE_URL=http://localhost:3000 uvx mc-wiki-fetch-mcp
 
-# 启用详细日志
+# Enable verbose logging
 MC_WIKI_LOG_LEVEL=DEBUG uvx mc-wiki-fetch-mcp
 
-# 使用命令行参数
+# Use command line arguments
 uvx mc-wiki-fetch-mcp --api-url http://localhost:3000 --log-level DEBUG
 
-# 查看帮助
+# Show help
 uvx mc-wiki-fetch-mcp --help
 ```
 
-### 💻 与 Cherry studio 集成
+### 💻 Integration with Claude Desktop
 
-1. **找到配置文件位置:**
+1. **Find configuration file location:**
    - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
    - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
    - **Linux**: `~/.config/claude/claude_desktop_config.json`
 
-2. **编辑配置文件:**
+2. **Edit configuration file:**
    ```json
    {
      "mcpServers": {
@@ -62,54 +64,54 @@ uvx mc-wiki-fetch-mcp --help
    }
    ```
 
-3. **重启 Cherry studio**
+3. **Restart Claude Desktop**
 
-## 配置选项
+## Configuration Options
 
-### 环境变量配置
+### Environment Variables Configuration
 
-| 环境变量 | 说明 | 默认值 |
-|----------|------|--------|
-| `MC_WIKI_API_BASE_URL` | Wiki API 基础URL | `http://mcwiki.rice-awa.top` |
-| `MC_WIKI_API_TIMEOUT` | API请求超时时间(秒) | `30` |
-| `MC_WIKI_API_MAX_RETRIES` | 最大重试次数 | `3` |
-| `MC_WIKI_DEFAULT_FORMAT` | 默认输出格式 | `both` |
-| `MC_WIKI_DEFAULT_LIMIT` | 默认搜索结果限制 | `10` |
-| `MC_WIKI_MAX_BATCH_SIZE` | 最大批量处理大小 | `20` |
-| `MC_WIKI_MAX_CONCURRENCY` | 最大并发数 | `5` |
-| `MC_WIKI_MCP_NAME` | MCP服务器名称 | `Minecraft Wiki MCP (stdio)` |
-| `MC_WIKI_MCP_DESCRIPTION` | MCP服务器描述 | 自动生成 |
-| `MC_WIKI_LOG_LEVEL` | 日志级别 | `INFO` |
+| Environment Variable | Description | Default Value |
+|----------------------|-------------|---------------|
+| `MC_WIKI_API_BASE_URL` | Wiki API base URL | `http://mcwiki.rice-awa.top` |
+| `MC_WIKI_API_TIMEOUT` | API request timeout (seconds) | `30` |
+| `MC_WIKI_API_MAX_RETRIES` | Maximum retry attempts | `3` |
+| `MC_WIKI_DEFAULT_FORMAT` | Default output format | `both` |
+| `MC_WIKI_DEFAULT_LIMIT` | Default search results limit | `10` |
+| `MC_WIKI_MAX_BATCH_SIZE` | Maximum batch processing size | `20` |
+| `MC_WIKI_MAX_CONCURRENCY` | Maximum concurrency | `5` |
+| `MC_WIKI_MCP_NAME` | MCP server name | `Minecraft Wiki MCP (stdio)` |
+| `MC_WIKI_MCP_DESCRIPTION` | MCP server description | Auto-generated |
+| `MC_WIKI_LOG_LEVEL` | Log level | `INFO` |
 
-### 命令行参数
+### Command Line Arguments
 
 ```bash
 uvx mc-wiki-fetch-mcp --help
 ```
 
-| 参数 | 说明 |
-|------|------|
-| `--api-url` | Wiki API 基础URL (覆盖环境变量) |
-| `--timeout` | API请求超时时间(秒) |
-| `--max-retries` | 最大重试次数 |
-| `--log-level` | 日志级别 (DEBUG/INFO/WARNING/ERROR) |
-| `--version` | 显示版本信息 |
-| `--help` | 显示帮助信息 |
+| Parameter | Description |
+|-----------|-------------|
+| `--api-url` | Wiki API base URL (overrides environment variable) |
+| `--timeout` | API request timeout (seconds) |
+| `--max-retries` | Maximum retry attempts |
+| `--log-level` | Log level (DEBUG/INFO/WARNING/ERROR) |
+| `--version` | Show version information |
+| `--help` | Show help information |
 
-## 配置示例
+## Configuration Examples
 
-### 基本配置示例
+### Basic Configuration Example
 
 ```bash
-# 设置环境变量
+# Set environment variables
 export MC_WIKI_API_BASE_URL="http://localhost:3000"
 export MC_WIKI_LOG_LEVEL="DEBUG"
 
-# 运行服务器
+# Run server
 uvx mc-wiki-fetch-mcp
 ```
 
-### Cherry studio 高级配置
+### Claude Desktop Advanced Configuration
 
 ```json
 {
@@ -130,178 +132,178 @@ uvx mc-wiki-fetch-mcp
 }
 ```
 
-## 传统安装方式（开发者）
+## Traditional Installation (Developers)
 
-如果您需要修改代码或进行开发：
+If you need to modify code or develop:
 
 ```bash
-# 克隆项目
+# Clone repository
 git clone <repository-url>
 cd mc-wiki-fetch-mcp
 
-# 安装依赖
+# Install dependencies
 pip install -e .
 
-# 运行
+# Run
 mc-wiki-fetch-mcp
 ```
 
-## 🛠️ 可用工具
+## 🛠️ Available Tools
 
-| 工具名称 | 功能描述 | 主要参数 |
-|---------|----------|----------|
-| `search_wiki` | 搜索 Wiki 内容 | `query`, `limit`, `namespaces` |
-| `get_wiki_page` | 获取页面内容 | `page_name`, `format`, `use_cache` |
-| `get_wiki_pages_batch` | 批量获取页面 | `pages`, `format`, `concurrency` |
-| `check_page_exists` | 检查页面存在 | `page_name` |
-| `check_wiki_api_health` | 健康检查 | 无参数 |
+| Tool Name | Description | Main Parameters |
+|-----------|-------------|-----------------|
+| `search_wiki` | Search Wiki content | `query`, `limit`, `namespaces` |
+| `get_wiki_page` | Get page content | `page_name`, `format`, `use_cache` |
+| `get_wiki_pages_batch` | Batch get pages | `pages`, `format`, `concurrency` |
+| `check_page_exists` | Check page existence | `page_name` |
+| `check_wiki_api_health` | Health check | No parameters |
 
-### 使用示例
+### Usage Examples
 
-#### 在 Cherry studio 中使用
+#### Using in Claude Desktop
 
-配置完成后，您可以在 Cherry studio 中直接询问：
+After configuration, you can directly ask in Claude Desktop:
 
 ```
-请帮我搜索关于红石的信息
-获取钻石页面的详细内容
-检查"红石电路"页面是否存在
-批量获取"钻石"、"红石"、"附魔"三个页面的内容
+Please help me search for information about redstone
+Get detailed content of the diamond page
+Check if the "redstone circuit" page exists
+Batch get content for "diamond", "redstone", and "enchanting" pages
 ```
 
-## 🔧 高级配置
+## 🔧 Advanced Configuration
 
-### 配置优先级
+### Configuration Priority
 
-配置的优先级顺序（从高到低）：
-1. 命令行参数
-2. 环境变量
-3. 默认值
+Configuration priority order (high to low):
+1. Command line arguments
+2. Environment variables
+3. Default values
 
-### 配置参数说明
+### Configuration Parameter Description
 
-| 参数 | 说明 | 默认值 | 可选值 |
-|------|------|--------|--------|
-| API 基础URL | Wiki API 服务地址 | `http://mcwiki.rice-awa.top` | 任何有效 URL |
-| 请求超时 | API 请求超时时间 | `30秒` | 正整数(秒) |
-| 最大重试 | 失败请求重试次数 | `3次` | 正整数 |
-| 默认格式 | 页面内容输出格式 | `both` | `html`, `markdown`, `both` |
-| 搜索限制 | 默认搜索结果数量 | `10` | 1-50 |
-| 批量大小 | 批量处理最大页面数 | `20` | 1-100 |
-| 并发数 | 最大并发请求数 | `5` | 1-20 |
+| Parameter | Description | Default Value | Optional Values |
+|-----------|-------------|---------------|-----------------|
+| API Base URL | Wiki API service address | `http://mcwiki.rice-awa.top` | Any valid URL |
+| Request Timeout | API request timeout | `30 seconds` | Positive integer (seconds) |
+| Maximum Retries | Failed request retry count | `3 times` | Positive integer |
+| Default Format | Page content output format | `both` | `html`, `markdown`, `both` |
+| Search Limit | Default search result count | `10` | 1-50 |
+| Batch Size | Maximum pages for batch processing | `20` | 1-100 |
+| Concurrency | Maximum concurrent requests | `5` | 1-20 |
 
-### 日志配置
+### Log Configuration
 
 ```bash
-# 不同日志级别
-MC_WIKI_LOG_LEVEL=DEBUG uvx mc-wiki-fetch-mcp   # 详细调试信息
-MC_WIKI_LOG_LEVEL=INFO uvx mc-wiki-fetch-mcp    # 基本信息
-MC_WIKI_LOG_LEVEL=WARNING uvx mc-wiki-fetch-mcp # 仅警告和错误
-MC_WIKI_LOG_LEVEL=ERROR uvx mc-wiki-fetch-mcp   # 仅错误信息
+# Different log levels
+MC_WIKI_LOG_LEVEL=DEBUG uvx mc-wiki-fetch-mcp   # Detailed debug information
+MC_WIKI_LOG_LEVEL=INFO uvx mc-wiki-fetch-mcp    # Basic information
+MC_WIKI_LOG_LEVEL=WARNING uvx mc-wiki-fetch-mcp # Only warnings and errors
+MC_WIKI_LOG_LEVEL=ERROR uvx mc-wiki-fetch-mcp   # Only errors
 ```
 
-## 🐛 故障排除
+## 🐛 Troubleshooting
 
-### 常见问题
+### Common Issues
 
-#### 1. uvx 命令不存在
+#### 1. uvx command not found
 
-**问题**: `uvx: command not found`
+**Problem**: `uvx: command not found`
 
-**解决方案**:
+**Solution**:
 ```bash
-# 安装 uv
+# Install uv
 curl -LsSf https://astral.sh/uv/install.sh | sh
-# 或者使用 pip
+# Or use pip
 pip install uv
 ```
 
-#### 2. 无法连接到 Wiki API
+#### 2. Cannot connect to Wiki API
 
-**问题**: 工具调用返回连接错误
+**Problem**: Tool calls return connection errors
 
-**解决方案**:
-1. 检查环境变量配置：
+**Solution**:
+1. Check environment variable configuration:
    ```bash
    echo $MC_WIKI_API_BASE_URL
    ```
-2. 测试 API 连接：
+2. Test API connection:
    ```bash
    curl http://your-api-url/health
    ```
-3. 启用详细日志：
+3. Enable verbose logging:
    ```bash
    MC_WIKI_LOG_LEVEL=DEBUG uvx mc-wiki-fetch-mcp
    ```
 
-#### 3. Cherry studio 中不显示工具
+#### 3. Tools not showing in Claude Desktop
 
-**问题**: 配置后在 Cherry studio 中看不到 MCP 工具
+**Problem**: After configuration, MCP tools are not visible in Claude Desktop
 
-**解决方案**
-1. 确认 uvx 可用：
+**Solution**:
+1. Confirm uvx is available:
    ```bash
    uvx mc-wiki-fetch-mcp --version
    ```
-2. 查看Cherry studio 日志
-3. 重启 Cherry studio
+2. Check Claude Desktop logs
+3. Restart Claude Desktop
 
-### 调试技巧
+### Debugging Tips
 
-#### 启用详细日志
+#### Enable Verbose Logging
 ```bash
-# 启动服务器并查看详细日志
+# Start server and view detailed logs
 MC_WIKI_LOG_LEVEL=DEBUG uvx mc-wiki-fetch-mcp 2>debug.log
 
-# 查看日志
+# View logs
 tail -f debug.log
 ```
 
-#### 测试配置
+#### Test Configuration
 ```bash
-# 测试特定配置
+# Test specific configuration
 MC_WIKI_API_BASE_URL=http://localhost:3000 \
 MC_WIKI_LOG_LEVEL=DEBUG \
 uvx mc-wiki-fetch-mcp --help
 ```
 
-#### 验证环境变量
+#### Verify Environment Variables
 ```bash
-# 检查当前环境变量
+# Check current environment variables
 env | grep MC_WIKI
 
-# 或者在 Python 中检查
+# Or check in Python
 python -c "import os; print({k:v for k,v in os.environ.items() if k.startswith('MC_WIKI')})"
 ```
 
-## 📖 相关文档
+## 📖 Related Documentation
 
-- [UVX 打包总结](docs/UVX_PACKAGING_SUMMARY.md) - UVX 打包和环境变量配置说明
-- [API 文档](docs/API_DOCUMENTATION.md) - 详细的 API 接口说明
-- [使用指南](docs/USAGE_GUIDE.md) - 深入的使用教程
-- [项目完成总结](docs/PROJECT_COMPLETION_SUMMARY.md) - 项目开发总结
+- [UVX Packaging Summary](docs/UVX_PACKAGING_SUMMARY.md) - UVX packaging and environment variable configuration
+- [API Documentation](docs/API_DOCUMENTATION.md) - Detailed API interface documentation
+- [Usage Guide](docs/USAGE_GUIDE.md) - In-depth usage tutorial
+- [Project Completion Summary](docs/PROJECT_COMPLETION_SUMMARY.md) - Project development summary
 
-## 🤝 贡献
+## 🤝 Contributing
 
-欢迎提交 Issue 和 Pull Request 来改进项目！
+Welcome to submit Issues and Pull Requests to improve the project!
 
-## 📄 许可证
+## 📄 License
 
-本项目采用 MIT 许可证，详见 [LICENSE](./LICENSE) 文件。
+This project is licensed under the MIT License. See [LICENSE](./LICENSE) file for details.
 
-## 🆘 获取帮助
+## 🆘 Getting Help
 
-如果您遇到问题或需要帮助：
+If you encounter problems or need help:
 
-1. 查看本 README 的故障排除部分
-2. 检查 [docs/](docs/) 目录中的详细文档
-3. 提交 Issue 描述您的问题
-4. 查看日志文件获取详细错误信息
+1. Check the troubleshooting section of this README
+2. Check detailed documentation in the [docs/](docs/) directory
+3. Submit an Issue describing your problem
+4. Check log files for detailed error information
 
 ---
 
-**快速开始提示**: 
-- 🚀 **推荐**: 使用 `uvx mc-wiki-fetch-mcp` 快速开始
-- 💻 **Cherry studio**: 配置中使用 `uvx` 命令和环境变量
-- ⚙️ **自定义**: 通过环境变量或命令行参数调整配置
-- 🔧 **开发**: 克隆仓库并使用 `pip install -e .` 进行开发
+**Quick Start Tips**: 
+- 🚀 **Recommended**: Use `uvx mc-wiki-fetch-mcp` to get started quickly
+- 💻 **Claude Desktop**: Use `uvx` command and environment variables in configuration
+- ⚙️ **Customize**: Adjust configuration through environment variables or command line arguments
+- 🔧 **Development**: Clone repository and use `pip install -e .` for development
