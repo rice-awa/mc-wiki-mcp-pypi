@@ -2,7 +2,6 @@ import asyncio
 import logging
 import os
 import sys
-import argparse
 from typing import List, Dict, Any, Optional
 import aiohttp
 from mcp.server.fastmcp import FastMCP
@@ -13,127 +12,34 @@ class StderrHandler(logging.StreamHandler):
     def __init__(self):
         super().__init__(sys.stderr)
 
-# 设置日志输出到 stderr，避免干扰 stdio 通信
-log_level = getattr(logging, config["logging"]["level"].upper(), logging.INFO)
+# 直接从环境变量获取配置值
+WIKI_API_BASE_URL = os.getenv("MC_WIKI_API_BASE_URL", "http://mcwiki.rice-awa.top")
+DEFAULT_TIMEOUT = int(os.getenv("MC_WIKI_API_TIMEOUT", "30"))
+MAX_RETRIES = int(os.getenv("MC_WIKI_API_MAX_RETRIES", "3"))
+DEFAULT_FORMAT = os.getenv("MC_WIKI_DEFAULT_FORMAT", "both")
+DEFAULT_LIMIT = int(os.getenv("MC_WIKI_DEFAULT_LIMIT", "10"))
+MAX_BATCH_SIZE = int(os.getenv("MC_WIKI_MAX_BATCH_SIZE", "20"))
+MAX_CONCURRENCY = int(os.getenv("MC_WIKI_MAX_CONCURRENCY", "5"))
+
+# 日志配置
+LOG_LEVEL = os.getenv("MC_WIKI_LOG_LEVEL", "INFO")
+LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+MCP_SERVER_NAME = os.getenv("MC_WIKI_MCP_NAME", "Minecraft Wiki MCP (stdio)")
+MCP_SERVER_DESCRIPTION = os.getenv("MC_WIKI_MCP_DESCRIPTION", "基于stdio传输的MCP服务器，提供Minecraft Wiki内容访问工具")
+
+# 配置日志
+log_level = getattr(logging, LOG_LEVEL.upper(), logging.INFO)
 logging.basicConfig(
     level=log_level,
-    format=config["logging"]["format"],
-    handlers=[StderrHandler()]
+    format=LOG_FORMAT,
+    handlers=[StderrHandler()],
+    force=True
 )
 logger = logging.getLogger("mc-wiki-mcp-stdio")
 
-def get_env_config():
-    """从环境变量加载配置"""
-    return {
-        "wiki_api": {
-            "base_url": os.getenv("MC_WIKI_API_BASE_URL", "http://mcwiki.rice-awa.top"),
-            "timeout": int(os.getenv("MC_WIKI_API_TIMEOUT", "30")),
-            "max_retries": int(os.getenv("MC_WIKI_API_MAX_RETRIES", "3")),
-            "default_format": os.getenv("MC_WIKI_DEFAULT_FORMAT", "both"),
-            "default_limit": int(os.getenv("MC_WIKI_DEFAULT_LIMIT", "10")),
-            "max_batch_size": int(os.getenv("MC_WIKI_MAX_BATCH_SIZE", "20")),
-            "max_concurrency": int(os.getenv("MC_WIKI_MAX_CONCURRENCY", "5"))
-        },
-        "mcp_server": {
-            "name": os.getenv("MC_WIKI_MCP_NAME", "Minecraft Wiki MCP (stdio)"),
-            "description": os.getenv("MC_WIKI_MCP_DESCRIPTION", "基于stdio传输的MCP服务器，提供Minecraft Wiki内容访问工具"),
-            "version": "1.0.0",
-            "transport": "stdio"
-        },
-        "logging": {
-            "level": os.getenv("MC_WIKI_LOG_LEVEL", "INFO"),
-            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        }
-    }
-
-def parse_args():
-    """解析命令行参数"""
-    parser = argparse.ArgumentParser(
-        description="Minecraft Wiki MCP Server - stdio版本",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""环境变量配置:
-  MC_WIKI_API_BASE_URL      Wiki API 基础URL (默认: http://mcwiki.rice-awa.top)
-  MC_WIKI_API_TIMEOUT       API请求超时时间(秒) (默认: 30)
-  MC_WIKI_API_MAX_RETRIES   最大重试次数 (默认: 3)
-  MC_WIKI_DEFAULT_FORMAT    默认输出格式 (默认: both)
-  MC_WIKI_DEFAULT_LIMIT     默认搜索结果限制 (默认: 10)
-  MC_WIKI_MAX_BATCH_SIZE    最大批量处理大小 (默认: 20)
-  MC_WIKI_MAX_CONCURRENCY   最大并发数 (默认: 5)
-  MC_WIKI_MCP_NAME          MCP服务器名称
-  MC_WIKI_MCP_DESCRIPTION   MCP服务器描述
-  MC_WIKI_LOG_LEVEL         日志级别 (默认: INFO)
-
-示例:
-  # 基本使用
-  uvx mc-wiki-fetch-mcp
-  
-  # 使用自定义API地址
-  MC_WIKI_API_BASE_URL=http://localhost:3000 uvx mc-wiki-fetch-mcp
-  
-  # 启用详细日志
-  MC_WIKI_LOG_LEVEL=DEBUG uvx mc-wiki-fetch-mcp
-"""
-    )
-    
-    parser.add_argument(
-        "--api-url",
-        help="Wiki API 基础URL (覆盖环境变量 MC_WIKI_API_BASE_URL)"
-    )
-    
-    parser.add_argument(
-        "--timeout",
-        type=int,
-        help="API请求超时时间(秒) (覆盖环境变量 MC_WIKI_API_TIMEOUT)"
-    )
-    
-    parser.add_argument(
-        "--max-retries",
-        type=int,
-        help="最大重试次数 (覆盖环境变量 MC_WIKI_API_MAX_RETRIES)"
-    )
-    
-    parser.add_argument(
-        "--log-level",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
-        help="日志级别 (覆盖环境变量 MC_WIKI_LOG_LEVEL)"
-    )
-    
-    parser.add_argument(
-        "--version",
-        action="version",
-        version="%(prog)s 1.0.0"
-    )
-    
-    return parser.parse_args()
-
-# 解析命令行参数
-args = parse_args()
-
-# 初始化配置
-config = get_env_config()
-
-# 命令行参数覆盖环境变量配置
-if args.api_url:
-    config["wiki_api"]["base_url"] = args.api_url
-if args.timeout:
-    config["wiki_api"]["timeout"] = args.timeout
-if args.max_retries:
-    config["wiki_api"]["max_retries"] = args.max_retries
-if args.log_level:
-    config["logging"]["level"] = args.log_level
-
-# 配置常量
-WIKI_API_BASE_URL = config["wiki_api"]["base_url"]
-DEFAULT_TIMEOUT = config["wiki_api"]["timeout"]
-MAX_RETRIES = config["wiki_api"]["max_retries"]
-DEFAULT_FORMAT = config["wiki_api"]["default_format"]
-DEFAULT_LIMIT = config["wiki_api"]["default_limit"]
-MAX_BATCH_SIZE = config["wiki_api"]["max_batch_size"]
-MAX_CONCURRENCY = config["wiki_api"]["max_concurrency"]
-
 # 创建 FastMCP 服务器实例 - stdio 版本
 mcp_server = FastMCP(
-    name=config["mcp_server"]["name"],
+    name=MCP_SERVER_NAME,
     dependencies=["asyncio", "aiohttp", "mcp", "pydantic"]
 )
 
@@ -528,9 +434,9 @@ async def get_wiki_search_resource(query: str) -> dict:
 def main():
     """主函数 - 启动 stdio MCP 服务器"""
     logger.info("Starting Minecraft Wiki MCP Server (stdio)...")
-    logger.info(f"Server Name: {config['mcp_server']['name']}")
+    logger.info(f"Server Name: {MCP_SERVER_NAME}")
     logger.info(f"Wiki API Base URL: {WIKI_API_BASE_URL}")
-    logger.info(f"Log Level: {config['logging']['level']}")
+    logger.info(f"Log Level: {LOG_LEVEL}")
     logger.info(f"Max Retries: {MAX_RETRIES}")
     logger.info(f"Default Timeout: {DEFAULT_TIMEOUT}s")
     logger.info(f"Max Batch Size: {MAX_BATCH_SIZE}")
@@ -547,3 +453,6 @@ def main():
     except Exception as e:
         logger.error(f"服务器启动失败: {e}")
         raise
+
+if __name__ == "__main__":
+    main()

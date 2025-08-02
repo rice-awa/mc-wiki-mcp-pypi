@@ -44,12 +44,7 @@ uvx mc-wiki-fetch-mcp --help
 
 ### 💻 与 Cherry studio 集成
 
-1. **找到配置文件位置:**
-   - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-   - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-   - **Linux**: `~/.config/claude/claude_desktop_config.json`
-
-2. **编辑配置文件:**
+1. **编辑配置文件:**
    ```json
    {
      "mcpServers": {
@@ -64,7 +59,22 @@ uvx mc-wiki-fetch-mcp --help
    }
    ```
 
-3. **重启 Cherry studio**
+### 如果在 Windows 无法运行尝试以下配置
+ ```json
+   {
+     "mcpServers": {
+       "minecraft-wiki": {
+         "command": "cmd",
+         "args": ["uvx", "mc-wiki-fetch-mcp"],
+         "env": {
+           "MC_WIKI_API_BASE_URL": "http://mcwiki.rice-awa.top"
+         }
+       }
+     }
+   }
+   ```
+
+2. **更新mcp服务器**
 
 ## 配置选项
 
