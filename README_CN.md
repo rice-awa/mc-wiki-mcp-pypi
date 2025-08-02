@@ -93,54 +93,6 @@ uvx mc-wiki-fetch-mcp --help
 | `MC_WIKI_MCP_DESCRIPTION` | MCP服务器描述 | 自动生成 |
 | `MC_WIKI_LOG_LEVEL` | 日志级别 | `INFO` |
 
-### 命令行参数
-
-```bash
-uvx mc-wiki-fetch-mcp --help
-```
-
-| 参数 | 说明 |
-|------|------|
-| `--api-url` | Wiki API 基础URL (覆盖环境变量) |
-| `--timeout` | API请求超时时间(秒) |
-| `--max-retries` | 最大重试次数 |
-| `--log-level` | 日志级别 (DEBUG/INFO/WARNING/ERROR) |
-| `--version` | 显示版本信息 |
-| `--help` | 显示帮助信息 |
-
-## 配置示例
-
-### 基本配置示例
-
-```bash
-# 设置环境变量
-export MC_WIKI_API_BASE_URL="http://localhost:3000"
-export MC_WIKI_LOG_LEVEL="DEBUG"
-
-# 运行服务器
-uvx mc-wiki-fetch-mcp
-```
-
-### Cherry studio 高级配置
-
-```json
-{
-  "mcpServers": {
-    "minecraft-wiki": {
-      "command": "uvx",
-      "args": [
-        "mc-wiki-fetch-mcp",
-        "--api-url", "http://localhost:3000",
-        "--log-level", "INFO"
-      ],
-      "env": {
-        "MC_WIKI_DEFAULT_LIMIT": "20",
-        "MC_WIKI_MAX_BATCH_SIZE": "50"
-      }
-    }
-  }
-}
-```
 
 ## 传统安装方式（开发者）
 
