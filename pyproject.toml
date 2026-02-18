@@ -1,6 +1,6 @@
 [project]
 name = "mc-wiki-fetch-mcp"
-version = "0.3.0"
+version = "0.4.0"
 description = "A MCP-based Minecraft Wiki backend server providing convenient access to Minecraft Wiki content via stdio"
 readme = "README.md"
 authors = [
