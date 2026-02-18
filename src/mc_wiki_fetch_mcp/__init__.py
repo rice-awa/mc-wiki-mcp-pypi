@@ -16,7 +16,7 @@ class StderrHandler(logging.StreamHandler):
 WIKI_API_BASE_URL = os.getenv("MC_WIKI_API_BASE_URL", "http://mcwiki.rice-awa.top")
 DEFAULT_TIMEOUT = int(os.getenv("MC_WIKI_API_TIMEOUT", "30"))
 MAX_RETRIES = int(os.getenv("MC_WIKI_API_MAX_RETRIES", "3"))
-DEFAULT_FORMAT = os.getenv("MC_WIKI_DEFAULT_FORMAT", "both")
+DEFAULT_FORMAT = os.getenv("MC_WIKI_DEFAULT_FORMAT", "wikitext")
 DEFAULT_LIMIT = int(os.getenv("MC_WIKI_DEFAULT_LIMIT", "10"))
 MAX_BATCH_SIZE = int(os.getenv("MC_WIKI_MAX_BATCH_SIZE", "20"))
 MAX_CONCURRENCY = int(os.getenv("MC_WIKI_MAX_CONCURRENCY", "5"))
@@ -134,17 +134,19 @@ async def search_wiki(
     format: str = "json"
 ) -> dict:
     """搜索 Minecraft Wiki 内容
-    
+
     Args:
         query: 搜索关键词(尽量使用中文)
         limit: 结果数量限制，默认使用配置文件设置，最大50
         namespaces: 命名空间，多个用逗号分隔（可选）
         format: 响应格式，默认json
-    
+
     Returns:
         搜索结果字典，包含匹配页面列表和分页信息，返回的结果并不是详细信息，请使用该工具后接着使用get_wiki_page查看详细信息。
-    Notes:
-        此工具只能依照关键词匹配搜索描述，可能无法返回跟关键词完全匹配的内容，注意分辨
+
+    Tips:
+        - 搜索结果仅包含页面标题和摘要，不包含完整内容
+        - 获取完整页面内容请使用 get_wiki_page 工具
     """
     if limit is None:
         limit = DEFAULT_LIMIT
@@ -193,15 +195,20 @@ async def get_wiki_page(
     include_metadata: bool = True
 ) -> dict:
     """获取指定页面的完整内容
-    
+
     Args:
         page_name: 页面名称
-        format: 输出格式 - html, markdown, both (默认使用配置文件设置)
+        format: 输出格式 - wikitext (默认，推荐，省token), html, markdown, both
         use_cache: 是否使用缓存 (默认True)
         include_metadata: 是否包含元数据 (默认True)
-    
+
     Returns:
-        页面内容字典，包含HTML/Markdown内容、元数据等
+        页面内容字典，包含Wikitext/HTML/Markdown内容、元数据等
+
+    Tips:
+        - 强烈建议使用 wikitext 格式，可大幅节省token
+        - wikitext 是原始Wiki标记语言，体积最小
+        - 如需转换为其他格式，可在客户端处理
     """
     if format is None:
         format = DEFAULT_FORMAT
@@ -244,20 +251,24 @@ async def get_wiki_page(
 @mcp_server.tool()
 async def get_wiki_pages_batch(
     pages: List[str],
-    format: str = "markdown",
+    format: str = "wikitext",
     concurrency: int = None,
     use_cache: bool = True
 ) -> dict:
     """批量获取多个页面内容
-    
+
     Args:
         pages: 页面名称列表
-        format: 输出格式 - html, markdown, both (默认markdown)
+        format: 输出格式 - wikitext (默认，推荐，省token), html, markdown, both
         concurrency: 并发请求数 (默认使用配置文件设置)
         use_cache: 是否使用缓存 (默认True)
-    
+
     Returns:
         批量获取结果字典，包含成功和失败的页面结果
+
+    Tips:
+        - 强烈建议使用 wikitext 格式批量获取，可大幅节省token
+        - 批量请求支持最多20个页面
     """
     if concurrency is None:
         concurrency = MAX_CONCURRENCY
@@ -373,7 +384,7 @@ async def check_wiki_api_health() -> dict:
 async def get_wiki_page_resource(page_name: str) -> dict:
     """获取Wiki页面资源"""
     try:
-        result = await get_wiki_page(page_name, format="both", use_cache=True, include_metadata=True)
+        result = await get_wiki_page(page_name, format="wikitext", use_cache=True, include_metadata=True)
         if result.get("success"):
             page_data = result["data"]["page"]
             return {
