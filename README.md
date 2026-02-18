@@ -11,7 +11,8 @@ Note: This project only provides example Minecraft wiki API. If you need local A
 ### Features
 
 - 🔍 **Wiki Content Search**: Search Minecraft Wiki pages by keywords
-- 📄 **Page Content Retrieval**: Get complete page content in HTML and Markdown formats
+- 📄 **Page Content Retrieval**: Get complete page content in Wikitext, HTML and Markdown formats
+- 📝 **Wikitext Support**: Get original Wiki source code (recommended for token efficiency)
 - 📚 **Batch Page Retrieval**: Efficiently retrieve multiple pages in batch
 - ✅ **Page Existence Check**: Quick check if a page exists
 - 🏥 **Health Monitoring**: Monitor backend Wiki API service status
@@ -75,7 +76,7 @@ uvx mc-wiki-fetch-mcp --help
 | `MC_WIKI_API_BASE_URL` | Wiki API base URL | `http://mcwiki.rice-awa.top` |
 | `MC_WIKI_API_TIMEOUT` | API request timeout (seconds) | `30` |
 | `MC_WIKI_API_MAX_RETRIES` | Maximum retry attempts | `3` |
-| `MC_WIKI_DEFAULT_FORMAT` | Default output format | `both` |
+| `MC_WIKI_DEFAULT_FORMAT` | Default output format | `wikitext` |
 | `MC_WIKI_DEFAULT_LIMIT` | Default search results limit | `10` |
 | `MC_WIKI_MAX_BATCH_SIZE` | Maximum batch processing size | `20` |
 | `MC_WIKI_MAX_CONCURRENCY` | Maximum concurrency | `5` |
@@ -153,7 +154,7 @@ mc-wiki-fetch-mcp
 | Tool Name | Description | Main Parameters |
 |-----------|-------------|-----------------|
 | `search_wiki` | Search Wiki content | `query`, `limit`, `namespaces` |
-| `get_wiki_page` | Get page content | `page_name`, `format`, `use_cache` |
+| `get_wiki_page` | Get page content | `page_name`, `format` (wikitext/html/markdown/both), `use_cache` |
 | `get_wiki_pages_batch` | Batch get pages | `pages`, `format`, `concurrency` |
 | `check_page_exists` | Check page existence | `page_name` |
 | `check_wiki_api_health` | Health check | No parameters |
@@ -187,7 +188,7 @@ Configuration priority order (high to low):
 | API Base URL | Wiki API service address | `http://mcwiki.rice-awa.top` | Any valid URL |
 | Request Timeout | API request timeout | `30 seconds` | Positive integer (seconds) |
 | Maximum Retries | Failed request retry count | `3 times` | Positive integer |
-| Default Format | Page content output format | `both` | `html`, `markdown`, `both` |
+| Default Format | Page content output format | `wikitext` | `wikitext`, `html`, `markdown`, `both` |
 | Search Limit | Default search result count | `10` | 1-50 |
 | Batch Size | Maximum pages for batch processing | `20` | 1-100 |
 | Concurrency | Maximum concurrent requests | `5` | 1-20 |

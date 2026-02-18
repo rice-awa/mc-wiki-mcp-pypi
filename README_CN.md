@@ -11,7 +11,8 @@
 ### 功能特性
 
 - 🔍 **Wiki 内容搜索**: 支持关键词搜索 Minecraft Wiki 页面
-- 📄 **页面内容获取**: 获取完整的页面内容，支持 HTML 和 Markdown 格式
+- 📄 **页面内容获取**: 获取完整的页面内容，支持 Wikitext、HTML 和 Markdown 格式
+- 📝 **Wikitext 支持**: 获取原始 Wiki 源代码（推荐，可节省 token）
 - 📚 **批量页面获取**: 高效地批量获取多个页面内容
 - ✅ **页面存在性检查**: 快速检查页面是否存在
 - 🏥 **健康状态监控**: 监控后端 Wiki API 服务状态
@@ -85,7 +86,7 @@ uvx mc-wiki-fetch-mcp --help
 | `MC_WIKI_API_BASE_URL` | Wiki API 基础URL | `http://mcwiki.rice-awa.top` |
 | `MC_WIKI_API_TIMEOUT` | API请求超时时间(秒) | `30` |
 | `MC_WIKI_API_MAX_RETRIES` | 最大重试次数 | `3` |
-| `MC_WIKI_DEFAULT_FORMAT` | 默认输出格式 | `both` |
+| `MC_WIKI_DEFAULT_FORMAT` | 默认输出格式 | `wikitext` |
 | `MC_WIKI_DEFAULT_LIMIT` | 默认搜索结果限制 | `10` |
 | `MC_WIKI_MAX_BATCH_SIZE` | 最大批量处理大小 | `20` |
 | `MC_WIKI_MAX_CONCURRENCY` | 最大并发数 | `5` |
@@ -115,7 +116,7 @@ mc-wiki-fetch-mcp
 | 工具名称 | 功能描述 | 主要参数 |
 |---------|----------|----------|
 | `search_wiki` | 搜索 Wiki 内容 | `query`, `limit`, `namespaces` |
-| `get_wiki_page` | 获取页面内容 | `page_name`, `format`, `use_cache` |
+| `get_wiki_page` | 获取页面内容 | `page_name`, `format` (wikitext/html/markdown/both), `use_cache` |
 | `get_wiki_pages_batch` | 批量获取页面 | `pages`, `format`, `concurrency` |
 | `check_page_exists` | 检查页面存在 | `page_name` |
 | `check_wiki_api_health` | 健康检查 | 无参数 |
@@ -149,7 +150,7 @@ mc-wiki-fetch-mcp
 | API 基础URL | Wiki API 服务地址 | `http://mcwiki.rice-awa.top` | 任何有效 URL |
 | 请求超时 | API 请求超时时间 | `30秒` | 正整数(秒) |
 | 最大重试 | 失败请求重试次数 | `3次` | 正整数 |
-| 默认格式 | 页面内容输出格式 | `both` | `html`, `markdown`, `both` |
+| 默认格式 | 页面内容输出格式 | `wikitext` | `wikitext`, `html`, `markdown`, `both` |
 | 搜索限制 | 默认搜索结果数量 | `10` | 1-50 |
 | 批量大小 | 批量处理最大页面数 | `20` | 1-100 |
 | 并发数 | 最大并发请求数 | `5` | 1-20 |
