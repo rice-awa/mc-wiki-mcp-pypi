@@ -72,7 +72,25 @@ uvx mc-wiki-fetch-mcp --help
 uvx mc-wiki-fetch-mcp -t http --host 0.0.0.0 --port 3001
 ```
 
-Then point your MCP client to `http://<host>:3001/mcp` (default /mcp path of the MCP Python SDK).
+Point your MCP client to the **Streamable HTTP** endpoint (must include `/mcp`):
+
+```text
+http://<host>:3001/mcp
+```
+
+Example client config:
+
+```json
+{
+  "mcpServers": {
+    "minecraft-wiki": {
+      "url": "http://127.0.0.1:3001/mcp"
+    }
+  }
+}
+```
+
+> **Note:** The endpoint is `/mcp`, not the root `/`. Connecting to `http://host:3001` will cause `list_tools` / `tools/list` to return **404**. Use transport type **http / streamable-http**, not SSE.
 
 ## Configuration Options
 
@@ -159,6 +177,12 @@ MC_WIKI_LOG_LEVEL=DEBUG uvx mc-wiki-fetch-mcp
 1. Confirm `uvx mc-wiki-fetch-mcp --version` works
 2. Check Claude Desktop logs
 3. Restart Claude Desktop
+
+### HTTP client returns 404 on list_tools
+
+1. Confirm the client URL is `http://<host>:<port>/mcp` (the trailing `/mcp` is required)
+2. Use transport **http / streamable-http**, not SSE
+3. After restarting the server, reconnect the client so it gets a fresh session
 
 ## Related Documentation
 

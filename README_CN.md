@@ -80,7 +80,25 @@ Windows 若 `uvx` 无法直接启动，可尝试：
 uvx mc-wiki-fetch-mcp -t http --host 0.0.0.0 --port 3001
 ```
 
-MCP 客户端连接到 `http://<host>:3001/mcp`（MCP Python SDK 默认 /mcp 路径）。
+MCP 客户端请连接 **Streamable HTTP** 端点（**必须带 `/mcp`**）：
+
+```text
+http://<host>:3001/mcp
+```
+
+客户端配置示例：
+
+```json
+{
+  "mcpServers": {
+    "minecraft-wiki": {
+      "url": "http://127.0.0.1:3001/mcp"
+    }
+  }
+}
+```
+
+> **注意：** 端点是 `/mcp`，不是根路径 `/`。如果写成 `http://host:3001`，客户端调用 `list_tools` / `tools/list` 时会返回 **404**。传输类型请选 **http / streamable-http**，不要选 SSE。
 
 ## 配置选项
 
@@ -167,6 +185,12 @@ MC_WIKI_LOG_LEVEL=DEBUG uvx mc-wiki-fetch-mcp
 1. 确认 `uvx mc-wiki-fetch-mcp --version` 可用
 2. 查看客户端日志
 3. 重启客户端
+
+### HTTP 客户端 list_tools 返回 404
+
+1. 确认客户端 URL 为 `http://<host>:<port>/mcp`（末尾的 `/mcp` 必填）
+2. 传输类型选 **http / streamable-http**，不要选 SSE
+3. 服务端重启后需重新连接客户端，以获取新的 session
 
 ## 相关文档
 
