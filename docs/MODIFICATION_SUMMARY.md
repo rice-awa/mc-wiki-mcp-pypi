@@ -1,62 +1,68 @@
-# MCP Server 简化修改总结
+# v0.5.0 修改总结：stdio + HTTP 统一包
 
-## 修改概述
+## 目标
 
-本次修改的目标是简化 MCP Server，删除无关的配置文件逻辑和参数解析，只保留环境变量配置。
+把原先仅 stdio 的 PyPI 包，与根目录 `server.py`（streamable-http）的工具设计合并为同一项目：
+
+- 一套工具定义（以根目录 `server.py` 为准）
+- 三种传输：`stdio` / `sse` / `streamable-http`
+- 仍可通过 `uvx mc-wiki-fetch-mcp` 一键运行
 
 ## 主要变更
 
-### 1. 删除的功能
-- **命令行参数解析**: 移除了 `argparse` 模块和 `parse_args()` 函数
-- **命令行参数覆盖逻辑**: 删除了命令行参数覆盖环境变量的逻辑
-- **复杂的帮助文档**: 移除了 argparse 中的详细帮助信息
+### 1. 包结构
 
-### 2. 保留的功能
-- **环境变量配置**: 完整保留所有环境变量配置选项
-- **核心 MCP 功能**: 所有工具和资源定义保持不变
-- **日志系统**: 简化后的日志配置系统
-
-### 3. 环境变量列表
-
-以下环境变量仍然可用：
-
-| 环境变量 | 默认值 | 说明 |
-|---------|-------|------|
-| `MC_WIKI_API_BASE_URL` | `http://mcwiki.rice-awa.top` | Wiki API 基础URL |
-| `MC_WIKI_API_TIMEOUT` | `30` | API请求超时时间(秒) |
-| `MC_WIKI_API_MAX_RETRIES` | `3` | 最大重试次数 |
-| `MC_WIKI_DEFAULT_FORMAT` | `both` | 默认输出格式 |
-| `MC_WIKI_DEFAULT_LIMIT` | `10` | 默认搜索结果限制 |
-| `MC_WIKI_MAX_BATCH_SIZE` | `20` | 最大批量处理大小 |
-| `MC_WIKI_MAX_CONCURRENCY` | `5` | 最大并发数 |
-| `MC_WIKI_MCP_NAME` | `Minecraft Wiki MCP (stdio)` | MCP服务器名称 |
-| `MC_WIKI_MCP_DESCRIPTION` | `基于stdio传输的MCP服务器...` | MCP服务器描述 |
-| `MC_WIKI_LOG_LEVEL` | `INFO` | 日志级别 |
-
-## 使用方式
-
-### 之前（带命令行参数）
-```bash
-uvx mc-wiki-fetch-mcp --api-url http://localhost:3000 --log-level DEBUG
+```
+src/mc_wiki_fetch_mcp/
+  __init__.py   # CLI 入口 main()、日志、参数解析
+  __main__.py   # python -m mc_wiki_fetch_mcp
+  config.py     # 环境变量配置
+  server.py     # FastMCP 工具注册（对齐根目录 server.py）
+server.py       # 本地便捷脚本：默认 streamable-http
 ```
 
-### 现在（仅环境变量）
+### 2. 工具对齐根目录 server.py
+
+| 工具 | 返回类型 | 说明 |
+|------|----------|------|
+| `search_wiki` | `str` | 参数 `q` / `limit` / `namespaces: list[int]`，精简搜索提示 |
+| `get_page` | `str` | 替代旧 `get_wiki_page`；仅 `wikitext` / `html` |
+| `check_page_exists` | `str` | 参数 `pageName` |
+| `check_health` | `str` | 替代旧 `check_wiki_api_health` |
+| `list_namespaces` | `str` | 新增 |
+
+已移除：`get_wiki_pages_batch`、MCP resources、旧 JSON dict 返回格式。
+
+HTTP 客户端由 `aiohttp` 改为 **`httpx`**（与根目录 `server.py` 一致）。
+
+### 3. 多传输启动
+
 ```bash
-MC_WIKI_API_BASE_URL=http://localhost:3000 MC_WIKI_LOG_LEVEL=DEBUG uvx mc-wiki-fetch-mcp
+# 默认 stdio（兼容 Claude Desktop / uvx 旧用法）
+mc-wiki-fetch-mcp
+
+# 服务器模式
+mc-wiki-fetch-mcp -t streamable-http --host 0.0.0.0 --port 3001
+
+# 兼容旧 SSE
+mc-wiki-fetch-mcp -t sse --port 3001
 ```
 
-## 优势
+环境变量：`MC_WIKI_MCP_TRANSPORT` / `MC_WIKI_MCP_HOST` / `MC_WIKI_MCP_PORT`。
 
-1. **简化代码**: 减少了约60行代码，提高了可维护性
-2. **容器友好**: 环境变量配置更适合容器化部署
-3. **统一配置**: 移除了命令行参数和环境变量的重复配置逻辑
-4. **更少依赖**: 不再需要 argparse 相关的复杂逻辑
+### 4. 配置
 
-## 测试结果
+| 来源 | 说明 |
+|------|------|
+| 环境变量 | `MC_WIKI_*`，并兼容 `API_BASE_URL` |
+| CLI | `--transport` `--host` `--port` `--api-url` 等，覆盖环境变量 |
 
-- ✅ 模块导入正常
-- ✅ 语法检查通过
-- ✅ 环境变量配置生效
-- ✅ 所有 MCP 工具功能保持完整
+### 5. 版本
 
-修改后的代码保持了完整的功能性，同时显著简化了配置管理。
+`0.4.0` → **`0.5.0`**（工具 API 有破坏性变更：名称与返回类型均改变）。
+
+## 兼容性说明
+
+- **传输默认仍是 stdio**：现有 Claude Desktop / Cherry Studio 配置无需改传输参数。
+- **工具名与参数有 breaking change**：若客户端侧有硬编码旧工具名（如 `get_wiki_page`），需改为 `get_page` 等。
+- 根目录 `server.py` 变为薄封装，安装包后 `python server.py` 等价于以 streamable-http 启动。

@@ -1,469 +1,183 @@
-import asyncio
-import logging
-import os
-import sys
-from typing import List, Dict, Any, Optional
-import aiohttp
-from mcp.server.fastmcp import FastMCP
+"""Minecraft Wiki MCP Server — stdio / SSE / streamable-http unified entry."""
 
-# 配置日志 - 重要：stdio 服务器不能向 stdout 输出日志
-# 所有日志都必须重定向到 stderr 或文件
+from __future__ import annotations
+
+import argparse
+import logging
+import sys
+from typing import Optional
+
+from . import config
+from .server import create_mcp_server
+
+__version__ = "0.5.0"
+__all__ = ["main", "create_mcp_server", "__version__"]
+
+
 class StderrHandler(logging.StreamHandler):
-    def __init__(self):
+    """Logging handler that always writes to stderr.
+
+    Required for stdio transport so protocol messages on stdout stay clean.
+    """
+
+    def __init__(self) -> None:
         super().__init__(sys.stderr)
 
-# 直接从环境变量获取配置值
-WIKI_API_BASE_URL = os.getenv("MC_WIKI_API_BASE_URL", "http://mcwiki.rice-awa.top")
-DEFAULT_TIMEOUT = int(os.getenv("MC_WIKI_API_TIMEOUT", "30"))
-MAX_RETRIES = int(os.getenv("MC_WIKI_API_MAX_RETRIES", "3"))
-DEFAULT_FORMAT = os.getenv("MC_WIKI_DEFAULT_FORMAT", "wikitext")
-DEFAULT_LIMIT = int(os.getenv("MC_WIKI_DEFAULT_LIMIT", "10"))
-MAX_BATCH_SIZE = int(os.getenv("MC_WIKI_MAX_BATCH_SIZE", "20"))
-MAX_CONCURRENCY = int(os.getenv("MC_WIKI_MAX_CONCURRENCY", "5"))
 
-# 日志配置
-LOG_LEVEL = os.getenv("MC_WIKI_LOG_LEVEL", "INFO")
-LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-MCP_SERVER_NAME = os.getenv("MC_WIKI_MCP_NAME", "Minecraft Wiki MCP (stdio)")
-MCP_SERVER_DESCRIPTION = os.getenv("MC_WIKI_MCP_DESCRIPTION", "基于stdio传输的MCP服务器，提供Minecraft Wiki内容访问工具")
+def setup_logging(level: Optional[str] = None) -> logging.Logger:
+    """Configure package-wide logging to stderr."""
+    log_level_name = (level or config.LOG_LEVEL).upper()
+    log_level = getattr(logging, log_level_name, logging.INFO)
+    logging.basicConfig(
+        level=log_level,
+        format=config.LOG_FORMAT,
+        handlers=[StderrHandler()],
+        force=True,
+    )
+    return logging.getLogger("mc-wiki-mcp")
 
-# 配置日志
-log_level = getattr(logging, LOG_LEVEL.upper(), logging.INFO)
-logging.basicConfig(
-    level=log_level,
-    format=LOG_FORMAT,
-    handlers=[StderrHandler()],
-    force=True
-)
-logger = logging.getLogger("mc-wiki-mcp-stdio")
 
-# 创建 FastMCP 服务器实例 - stdio 版本
-mcp_server = FastMCP(
-    name=MCP_SERVER_NAME,
-    dependencies=["asyncio", "aiohttp", "mcp", "pydantic"]
-)
+def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+    """Parse CLI arguments. Environment variables remain the base defaults."""
+    parser = argparse.ArgumentParser(
+        prog="mc-wiki-fetch-mcp",
+        description=(
+            "Minecraft Wiki MCP Server — supports stdio, SSE and "
+            "streamable-http transports in a single package."
+        ),
+    )
+    parser.add_argument(
+        "--transport",
+        "-t",
+        choices=list(config.SUPPORTED_TRANSPORTS),
+        default=None,
+        help=(
+            "MCP transport protocol "
+            f"(default: env MC_WIKI_MCP_TRANSPORT or '{config.MCP_TRANSPORT}')"
+        ),
+    )
+    parser.add_argument(
+        "--host",
+        default=None,
+        help=(
+            "Bind host for HTTP/SSE transports "
+            f"(default: env MC_WIKI_MCP_HOST or '{config.MCP_HOST}')"
+        ),
+    )
+    parser.add_argument(
+        "--port",
+        "-p",
+        type=int,
+        default=None,
+        help=(
+            "Bind port for HTTP/SSE transports "
+            f"(default: env MC_WIKI_MCP_PORT or {config.MCP_PORT})"
+        ),
+    )
+    parser.add_argument(
+        "--api-url",
+        default=None,
+        help=(
+            "Wiki API base URL (default: env MC_WIKI_API_BASE_URL / "
+            f"API_BASE_URL or '{config.WIKI_API_BASE_URL}')"
+        ),
+    )
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=None,
+        help="API request timeout in seconds",
+    )
+    parser.add_argument(
+        "--log-level",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        default=None,
+        help="Log level (default: env MC_WIKI_LOG_LEVEL or INFO)",
+    )
+    parser.add_argument(
+        "--name",
+        default=None,
+        help="MCP server display name",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
+    )
+    return parser.parse_args(argv)
 
-# HTTP 客户端类 - 与 Wiki API 通信
-class WikiAPIClient:
-    """Wiki API 客户端，处理与后端 Wiki API 的所有 HTTP 通信"""
-    
-    def __init__(self, base_url: str = WIKI_API_BASE_URL, timeout: int = DEFAULT_TIMEOUT):
-        self.base_url = base_url.rstrip('/')
-        self.timeout = aiohttp.ClientTimeout(total=timeout)
-        self.session = None
-    
-    async def __aenter__(self):
-        self.session = aiohttp.ClientSession(timeout=self.timeout)
-        return self
-    
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if self.session:
-            await self.session.close()
-    
-    async def get(self, endpoint: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
-        """向 Wiki API 发送 GET 请求"""
-        if not self.session:
-            raise RuntimeError("Client not initialized. Use 'async with WikiAPIClient()' pattern.")
-        
-        url = f"{self.base_url}{endpoint}"
-        
-        for attempt in range(MAX_RETRIES):
-            try:
-                logger.info(f"Making request to {url} with params: {params}")
-                async with self.session.get(url, params=params) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        logger.info(f"Successfully received response from {url}")
-                        return data
-                    else:
-                        error_text = await response.text()
-                        logger.error(f"API returned status {response.status}: {error_text}")
-                        raise aiohttp.ClientResponseError(
-                            response.request_info,
-                            response.history,
-                            status=response.status,
-                            message=error_text
-                        )
-            except aiohttp.ClientError as e:
-                if attempt == MAX_RETRIES - 1:
-                    logger.error(f"Failed to connect to Wiki API after {MAX_RETRIES} attempts: {e}")
-                    raise
-                logger.warning(f"Request failed (attempt {attempt + 1}/{MAX_RETRIES}): {e}")
-                await asyncio.sleep(1 * (attempt + 1))  # 指数退避
-    
-    async def post(self, endpoint: str, data: Dict[str, Any]) -> Dict[str, Any]:
-        """向 Wiki API 发送 POST 请求"""
-        if not self.session:
-            raise RuntimeError("Client not initialized. Use 'async with WikiAPIClient()' pattern.")
-        
-        url = f"{self.base_url}{endpoint}"
-        
-        for attempt in range(MAX_RETRIES):
-            try:
-                logger.info(f"Making POST request to {url} with data: {data}")
-                async with self.session.post(url, json=data) as response:
-                    if response.status == 200:
-                        result = await response.json()
-                        logger.info(f"Successfully received response from {url}")
-                        return result
-                    else:
-                        error_text = await response.text()
-                        logger.error(f"API returned status {response.status}: {error_text}")
-                        raise aiohttp.ClientResponseError(
-                            response.request_info,
-                            response.history,
-                            status=response.status,
-                            message=error_text
-                        )
-            except aiohttp.ClientError as e:
-                if attempt == MAX_RETRIES - 1:
-                    logger.error(f"Failed to connect to Wiki API after {MAX_RETRIES} attempts: {e}")
-                    raise
-                logger.warning(f"Request failed (attempt {attempt + 1}/{MAX_RETRIES}): {e}")
-                await asyncio.sleep(1 * (attempt + 1))
 
-# =====================================
-# MCP 工具定义
-# =====================================
+def apply_cli_overrides(args: argparse.Namespace) -> None:
+    """Apply CLI arguments on top of environment/config defaults."""
+    if args.api_url is not None:
+        config.WIKI_API_BASE_URL = args.api_url
+    if args.timeout is not None:
+        config.DEFAULT_TIMEOUT = args.timeout
+    if args.log_level is not None:
+        config.LOG_LEVEL = args.log_level
+    if args.name is not None:
+        config.MCP_SERVER_NAME = args.name
+    if args.transport is not None:
+        config.MCP_TRANSPORT = args.transport
+    if args.host is not None:
+        config.MCP_HOST = args.host
+    if args.port is not None:
+        config.MCP_PORT = args.port
 
-@mcp_server.tool()
-async def search_wiki(
-    query: str,
-    limit: int = None,
-    namespaces: Optional[str] = None,
-    format: str = "json"
-) -> dict:
-    """搜索 Minecraft Wiki 内容
 
-    Args:
-        query: 搜索关键词(尽量使用中文)
-        limit: 结果数量限制，默认使用配置文件设置，最大50
-        namespaces: 命名空间，多个用逗号分隔（可选）
-        format: 响应格式，默认json
+def main(argv: Optional[list[str]] = None) -> None:
+    """CLI entry point for uvx / console_scripts."""
+    args = parse_args(argv)
+    apply_cli_overrides(args)
 
-    Returns:
-        搜索结果字典，包含匹配页面列表和分页信息，返回的结果并不是详细信息，请使用该工具后接着使用get_wiki_page查看详细信息。
+    logger = setup_logging(config.LOG_LEVEL)
+    transport = config.MCP_TRANSPORT
+    host = config.MCP_HOST
+    port = config.MCP_PORT
 
-    Tips:
-        - 搜索结果仅包含页面标题和摘要，不包含完整内容
-        - 获取完整页面内容请使用 get_wiki_page 工具
-    """
-    if limit is None:
-        limit = DEFAULT_LIMIT
-    
+    if transport not in config.SUPPORTED_TRANSPORTS:
+        logger.error(
+            "Unsupported transport %r. Choose from: %s",
+            transport,
+            ", ".join(config.SUPPORTED_TRANSPORTS),
+        )
+        sys.exit(2)
+
+    logger.info("Starting Minecraft Wiki MCP Server v%s...", __version__)
+    logger.info("Transport: %s", transport)
+    logger.info("Server Name: %s", config.MCP_SERVER_NAME)
+    logger.info("Wiki API Base URL: %s", config.WIKI_API_BASE_URL)
+    logger.info("Log Level: %s", config.LOG_LEVEL)
+    if transport != "stdio":
+        logger.info("Listening on %s:%s", host, port)
+    logger.info(
+        "版权信息: 本工具获取的所有内容均来自中文Minecraft Wiki，"
+        "遵循CC BY-NC-SA 3.0协议"
+    )
+
+    mcp_server = create_mcp_server(
+        name=config.MCP_SERVER_NAME,
+        host=host,
+        port=port,
+    )
+
     try:
-        params = {
-            "q": query,
-            "limit": min(limit, 50)  # API限制最大50
-        }
-        if namespaces:
-            params["namespaces"] = namespaces
-        if format != "json":
-            params["format"] = format
-        
-        async with WikiAPIClient() as client:
-            result = await client.get("/api/search", params)
-            
-        if result.get("success"):
-            return {
-                "success": True,
-                "query": query,
-                "results": result["data"]["results"],
-                "pagination": result["data"]["pagination"],
-                "metadata": result["data"]["metadata"]
-            }
+        if transport == "stdio":
+            mcp_server.run(transport="stdio")
+        elif transport == "sse":
+            logger.warning(
+                "SSE transport is deprecated by the MCP spec; "
+                "prefer streamable-http for production."
+            )
+            mcp_server.run(transport="sse")
         else:
-            return {
-                "success": False,
-                "error": result.get("error", "Unknown search error"),
-                "query": query
-            }
-    
-    except Exception as e:
-        logger.error(f"Error searching wiki: {e}")
-        return {
-            "success": False,
-            "error": f"搜索失败: {str(e)}",
-            "query": query
-        }
-
-@mcp_server.tool()
-async def get_wiki_page(
-    page_name: str,
-    format: str = None,
-    use_cache: bool = True,
-    include_metadata: bool = True
-) -> dict:
-    """获取指定页面的完整内容
-
-    Args:
-        page_name: 页面名称
-        format: 输出格式 - wikitext (默认，推荐，省token), html, markdown, both
-        use_cache: 是否使用缓存 (默认True)
-        include_metadata: 是否包含元数据 (默认True)
-
-    Returns:
-        页面内容字典，包含Wikitext/HTML/Markdown内容、元数据等
-
-    Tips:
-        - 强烈建议使用 wikitext 格式，可大幅节省token
-        - wikitext 是原始Wiki标记语言，体积最小
-        - 如需转换为其他格式，可在客户端处理
-    """
-    if format is None:
-        format = DEFAULT_FORMAT
-    
-    try:
-        params = {
-            "format": format,
-            "useCache": str(use_cache).lower(),
-            "includeMetadata": str(include_metadata).lower()
-        }
-        
-        # URL encode the page name
-        import urllib.parse
-        encoded_page_name = urllib.parse.quote(page_name, safe='')
-        
-        async with WikiAPIClient() as client:
-            result = await client.get(f"/api/page/{encoded_page_name}", params)
-        
-        if result.get("success"):
-            return {
-                "success": True,
-                "page_name": page_name,
-                "data": result["data"]
-            }
-        else:
-            return {
-                "success": False,
-                "error": result.get("error", "Unknown page error"),
-                "page_name": page_name
-            }
-    
-    except Exception as e:
-        logger.error(f"Error getting wiki page '{page_name}': {e}")
-        return {
-            "success": False,
-            "error": f"获取页面失败: {str(e)}",
-            "page_name": page_name
-        }
-
-@mcp_server.tool()
-async def get_wiki_pages_batch(
-    pages: List[str],
-    format: str = "wikitext",
-    concurrency: int = None,
-    use_cache: bool = True
-) -> dict:
-    """批量获取多个页面内容
-
-    Args:
-        pages: 页面名称列表
-        format: 输出格式 - wikitext (默认，推荐，省token), html, markdown, both
-        concurrency: 并发请求数 (默认使用配置文件设置)
-        use_cache: 是否使用缓存 (默认True)
-
-    Returns:
-        批量获取结果字典，包含成功和失败的页面结果
-
-    Tips:
-        - 强烈建议使用 wikitext 格式批量获取，可大幅节省token
-        - 批量请求支持最多20个页面
-    """
-    if concurrency is None:
-        concurrency = MAX_CONCURRENCY
-    
-    try:
-        if len(pages) > MAX_BATCH_SIZE:
-            return {
-                "success": False,
-                "error": f"页面数量超过限制，最大支持{MAX_BATCH_SIZE}个页面",
-                "pages": pages
-            }
-        
-        data = {
-            "pages": pages,
-            "format": format,
-            "concurrency": min(concurrency, MAX_CONCURRENCY),
-            "useCache": use_cache
-        }
-        
-        async with WikiAPIClient() as client:
-            result = await client.post("/api/pages", data)
-        
-        if result.get("success"):
-            return {
-                "success": True,
-                "results": result["data"]["results"],
-                "summary": result["data"]["summary"],
-                "metadata": result["data"]["metadata"]
-            }
-        else:
-            return {
-                "success": False,
-                "error": result.get("error", "Unknown batch error"),
-                "pages": pages
-            }
-    
-    except Exception as e:
-        logger.error(f"Error getting batch wiki pages: {e}")
-        return {
-            "success": False,
-            "error": f"批量获取页面失败: {str(e)}",
-            "pages": pages
-        }
-
-@mcp_server.tool()
-async def check_page_exists(page_name: str) -> dict:
-    """检查页面是否存在
-    
-    Args:
-        page_name: 页面名称
-    
-    Returns:
-        页面存在性检查结果
-    """
-    try:
-        # URL encode the page name
-        import urllib.parse
-        encoded_page_name = urllib.parse.quote(page_name, safe='')
-        
-        async with WikiAPIClient() as client:
-            result = await client.get(f"/api/page/{encoded_page_name}/exists")
-        
-        if result.get("success"):
-            return {
-                "success": True,
-                "page_name": page_name,
-                "exists": result["data"]["exists"],
-                "page_info": result["data"].get("pageInfo"),
-                "redirected": result["data"].get("redirected", False)
-            }
-        else:
-            return {
-                "success": False,
-                "error": result.get("error", "Unknown error"),
-                "page_name": page_name,
-                "exists": False
-            }
-    
-    except Exception as e:
-        logger.error(f"Error checking page existence '{page_name}': {e}")
-        return {
-            "success": False,
-            "error": f"检查页面存在性失败: {str(e)}",
-            "page_name": page_name,
-            "exists": False
-        }
-
-@mcp_server.tool()
-async def check_wiki_api_health() -> dict:
-    """检查Wiki API服务健康状态"""
-    try:
-        async with WikiAPIClient() as client:
-            result = await client.get("/health")
-        
-        return {
-            "success": True,
-            "api_status": "healthy",
-            "health_data": result
-        }
-    except Exception as e:
-        logger.error(f"Wiki API health check failed: {e}")
-        return {
-            "success": False,
-            "api_status": "unhealthy",
-            "error": str(e)
-        }
-
-# =====================================
-# MCP 资源定义
-# =====================================
-
-@mcp_server.resource("minecraft://wiki/page/{page_name}")
-async def get_wiki_page_resource(page_name: str) -> dict:
-    """获取Wiki页面资源"""
-    try:
-        result = await get_wiki_page(page_name, format="wikitext", use_cache=True, include_metadata=True)
-        if result.get("success"):
-            page_data = result["data"]["page"]
-            return {
-                "uri": f"minecraft://wiki/page/{page_name}",
-                "name": page_data.get("title", page_name),
-                "description": f"Minecraft Wiki 页面: {page_data.get('title', page_name)}",
-                "mimeType": "application/json",
-                "content": result
-            }
-        else:
-            return {
-                "uri": f"minecraft://wiki/page/{page_name}",
-                "name": page_name,
-                "description": f"Wiki页面不存在: {page_name}",
-                "mimeType": "application/json",
-                "content": result
-            }
-    except Exception as e:
-        logger.error(f"Error getting wiki page resource '{page_name}': {e}")
-        return {
-            "uri": f"minecraft://wiki/page/{page_name}",
-            "name": page_name,
-            "description": f"获取Wiki页面资源失败: {page_name}",
-            "mimeType": "application/json",
-            "content": {
-                "success": False,
-                "error": str(e),
-                "page_name": page_name
-            }
-        }
-
-@mcp_server.resource("minecraft://wiki/search/{query}")
-async def get_wiki_search_resource(query: str) -> dict:
-    """获取Wiki搜索结果资源"""
-    try:
-        result = await search_wiki(query, limit=10)
-        return {
-            "uri": f"minecraft://wiki/search/{query}",
-            "name": f"搜索: {query}",
-            "description": f"Minecraft Wiki 搜索结果: {query}",
-            "mimeType": "application/json",
-            "content": result
-        }
-    except Exception as e:
-        logger.error(f"Error getting wiki search resource '{query}': {e}")
-        return {
-            "uri": f"minecraft://wiki/search/{query}",
-            "name": f"搜索: {query}",
-            "description": f"Wiki搜索失败: {query}",
-            "mimeType": "application/json",
-            "content": {
-                "success": False,
-                "error": str(e),
-                "query": query
-            }
-        }
-
-def main():
-    """主函数 - 启动 stdio MCP 服务器"""
-    logger.info("Starting Minecraft Wiki MCP Server (stdio)...")
-    logger.info(f"Server Name: {MCP_SERVER_NAME}")
-    logger.info(f"Wiki API Base URL: {WIKI_API_BASE_URL}")
-    logger.info(f"Log Level: {LOG_LEVEL}")
-    logger.info(f"Max Retries: {MAX_RETRIES}")
-    logger.info(f"Default Timeout: {DEFAULT_TIMEOUT}s")
-    logger.info(f"Max Batch Size: {MAX_BATCH_SIZE}")
-    logger.info(f"Max Concurrency: {MAX_CONCURRENCY}")
-    
-    logger.info("版权信息: 本工具获取的所有内容均来自中文Minecraft Wiki，遵循CC BY-NC-SA 3.0协议")
-    
-    try:
-        # 启动 stdio 传输的 MCP 服务器
-        # 这将使用标准输入输出与客户端通信
-        mcp_server.run(transport="stdio")
+            mcp_server.run(transport="streamable-http")
     except KeyboardInterrupt:
         logger.info("服务器已停止")
     except Exception as e:
-        logger.error(f"服务器启动失败: {e}")
+        logger.error("服务器启动失败: %s", e)
         raise
+
 
 if __name__ == "__main__":
     main()
