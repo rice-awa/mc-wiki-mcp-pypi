@@ -132,15 +132,8 @@ pip install -e .
 # stdio
 mc-wiki-fetch-mcp
 
-# streamable-http (same as `python server.py` after install)
+# streamable-http
 mc-wiki-fetch-mcp -t streamable-http -p 3001
-```
-
-Local convenience script (defaults to streamable-http):
-
-```bash
-pip install -e .
-python server.py
 ```
 
 ## Troubleshooting

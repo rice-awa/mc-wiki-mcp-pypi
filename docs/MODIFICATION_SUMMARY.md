@@ -2,9 +2,9 @@
 
 ## 目标
 
-把原先仅 stdio 的 PyPI 包，与根目录 `server.py`（streamable-http）的工具设计合并为同一项目：
+把原先仅 stdio 的 PyPI 包，与独立 HTTP 版工具设计合并为同一项目：
 
-- 一套工具定义（以根目录 `server.py` 为准）
+- 一套工具定义
 - 三种传输：`stdio` / `sse` / `streamable-http`
 - 仍可通过 `uvx mc-wiki-fetch-mcp` 一键运行
 
@@ -17,11 +17,12 @@ src/mc_wiki_fetch_mcp/
   __init__.py   # CLI 入口 main()、日志、参数解析
   __main__.py   # python -m mc_wiki_fetch_mcp
   config.py     # 环境变量配置
-  server.py     # FastMCP 工具注册（对齐根目录 server.py）
-server.py       # 本地便捷脚本：默认 streamable-http
+  server.py     # FastMCP 工具注册
 ```
 
-### 2. 工具对齐根目录 server.py
+统一入口：`mc-wiki-fetch-mcp` / `python -m mc_wiki_fetch_mcp`。
+
+### 2. 工具
 
 | 工具 | 返回类型 | 说明 |
 |------|----------|------|
@@ -33,7 +34,7 @@ server.py       # 本地便捷脚本：默认 streamable-http
 
 已移除：`get_wiki_pages_batch`、MCP resources、旧 JSON dict 返回格式。
 
-HTTP 客户端由 `aiohttp` 改为 **`httpx`**（与根目录 `server.py` 一致）。
+HTTP 客户端由 `aiohttp` 改为 **`httpx`**。
 
 ### 3. 多传输启动
 
@@ -65,4 +66,3 @@ mc-wiki-fetch-mcp -t sse --port 3001
 
 - **传输默认仍是 stdio**：现有 Claude Desktop / Cherry Studio 配置无需改传输参数。
 - **工具名与参数有 breaking change**：若客户端侧有硬编码旧工具名（如 `get_wiki_page`），需改为 `get_page` 等。
-- 根目录 `server.py` 变为薄封装，安装包后 `python server.py` 等价于以 streamable-http 启动。

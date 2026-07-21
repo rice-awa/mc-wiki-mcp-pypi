@@ -140,15 +140,8 @@ pip install -e .
 # stdio
 mc-wiki-fetch-mcp
 
-# streamable-http（安装后等同 python server.py）
+# streamable-http
 mc-wiki-fetch-mcp -t streamable-http -p 3001
-```
-
-本地便捷脚本（默认 streamable-http）：
-
-```bash
-pip install -e .
-python server.py
 ```
 
 ## 故障排除
