@@ -4,7 +4,7 @@
 
 ## 项目简介
 
-一个基于 **MCP** 的 **Minecraft Wiki** 服务器，提供对中文 Minecraft Wiki 内容的便捷访问。在同一项目中同时支持 **stdio**、**SSE**、**streamable-http** 三种传输方式，可通过 **uvx** 一键部署。
+一个基于 **MCP** 的 **Minecraft Wiki** 服务器，提供对中文 Minecraft Wiki 内容的便捷访问。在同一项目中同时支持 **stdio**、**SSE**、**http** 三种传输方式，可通过 **uvx** 一键部署。
 
 注意：本项目仅提供 MCP 层，后端仍依赖 Minecraft wiki API。如需本地搭建 API，请前往 [minecraft-wiki-fetch-api](https://github.com/rice-awa/minecraft-wiki-fetch-api)。
 
@@ -15,7 +15,7 @@
 - ✅ **页面存在性检查**: 快速检查页面是否存在（含重定向信息）
 - 📚 **命名空间列表**: 获取命名空间 ID → 名称映射，配合搜索使用
 - 🏥 **健康检查**: 监控后端 Wiki API 状态
-- 🔌 **多传输协议**: `stdio`（Claude Desktop 等本地客户端）、`streamable-http`（远程/服务器）、`sse`（兼容旧客户端）
+- 🔌 **多传输协议**: `stdio`（Claude Desktop 等本地客户端）、`http`（远程/服务器）、`sse`（兼容旧客户端）
 - 🚀 **一键部署**: 支持 `uvx`，无需本地安装
 - ⚙️ **环境变量 + CLI**: 灵活配置
 
@@ -27,15 +27,15 @@
 # stdio（默认）—— Claude Desktop / 本地 MCP 客户端
 uvx mc-wiki-fetch-mcp
 
-# streamable-http —— 远程 / 服务器部署
-uvx mc-wiki-fetch-mcp --transport streamable-http --host 0.0.0.0 --port 3001
+# http —— 远程 / 服务器部署
+uvx mc-wiki-fetch-mcp --transport http --host 0.0.0.0 --port 3001
 
 # 自定义 Wiki API 地址
 uvx mc-wiki-fetch-mcp --api-url http://localhost:3000
 
 # 或使用环境变量
 MC_WIKI_API_BASE_URL=http://localhost:3000 \
-MC_WIKI_MCP_TRANSPORT=streamable-http \
+MC_WIKI_MCP_TRANSPORT=http \
 uvx mc-wiki-fetch-mcp
 
 # 查看帮助
@@ -74,13 +74,13 @@ Windows 若 `uvx` 无法直接启动，可尝试：
 }
 ```
 
-### 🌐 远程 / HTTP 客户端（streamable-http）
+### 🌐 远程 / HTTP 客户端（http）
 
 ```bash
-uvx mc-wiki-fetch-mcp -t streamable-http --host 0.0.0.0 --port 3001
+uvx mc-wiki-fetch-mcp -t http --host 0.0.0.0 --port 3001
 ```
 
-MCP 客户端连接到 `http://<host>:3001/mcp`（MCP Python SDK 默认 streamable-http 路径）。
+MCP 客户端连接到 `http://<host>:3001/mcp`（MCP Python SDK 默认 /mcp 路径）。
 
 ## 配置选项
 
@@ -90,7 +90,7 @@ MCP 客户端连接到 `http://<host>:3001/mcp`（MCP Python SDK 默认 streamab
 |----------|------|--------|
 | `MC_WIKI_API_BASE_URL` / `API_BASE_URL` | Wiki API 基础 URL | `https://mcwiki.rice-awa.top` |
 | `MC_WIKI_API_TIMEOUT` | API 请求超时（秒） | `60` |
-| `MC_WIKI_MCP_TRANSPORT` | 传输协议：`stdio` / `sse` / `streamable-http` | `stdio` |
+| `MC_WIKI_MCP_TRANSPORT` | 传输协议：`stdio` / `sse` / `http` | `stdio` |
 | `MC_WIKI_MCP_HOST` | HTTP/SSE 绑定地址 | `0.0.0.0` |
 | `MC_WIKI_MCP_PORT` | HTTP/SSE 绑定端口 | `3001` |
 | `MC_WIKI_MCP_NAME` | MCP 服务器显示名称 | `Minecraft Wiki` |
@@ -100,7 +100,7 @@ MCP 客户端连接到 `http://<host>:3001/mcp`（MCP Python SDK 默认 streamab
 
 | 参数 | 说明 |
 |------|------|
-| `--transport`, `-t` | `stdio` / `sse` / `streamable-http` |
+| `--transport`, `-t` | `stdio` / `sse` / `http` |
 | `--host` | HTTP/SSE 绑定地址 |
 | `--port`, `-p` | HTTP/SSE 绑定端口 |
 | `--api-url` | Wiki API 基础 URL |
@@ -140,8 +140,8 @@ pip install -e .
 # stdio
 mc-wiki-fetch-mcp
 
-# streamable-http
-mc-wiki-fetch-mcp -t streamable-http -p 3001
+# http
+mc-wiki-fetch-mcp -t http -p 3001
 ```
 
 ## 故障排除
@@ -191,6 +191,6 @@ MIT License — 详见 [LICENSE](./LICENSE)。
 
 **快速提示**
 - 🚀 **本地客户端**: `uvx mc-wiki-fetch-mcp`（stdio）
-- 🌐 **服务器模式**: `uvx mc-wiki-fetch-mcp -t streamable-http -p 3001`
+- 🌐 **服务器模式**: `uvx mc-wiki-fetch-mcp -t http -p 3001`
 - ⚙️ **配置**: 环境变量或 CLI 参数
 - 🔧 **开发**: `pip install -e .`

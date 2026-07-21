@@ -1,4 +1,4 @@
-"""Minecraft Wiki MCP Server — stdio / SSE / streamable-http unified entry."""
+"""Minecraft Wiki MCP Server — stdio / SSE / http unified entry."""
 
 from __future__ import annotations
 
@@ -37,13 +37,18 @@ def setup_logging(level: Optional[str] = None) -> logging.Logger:
     return logging.getLogger("mc-wiki-mcp")
 
 
+def normalize_transport(name: str) -> str:
+    """Normalize public transport names (e.g. streamable-http -> http)."""
+    return config.TRANSPORT_ALIASES.get(name, name)
+
+
 def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     """Parse CLI arguments. Environment variables remain the base defaults."""
     parser = argparse.ArgumentParser(
         prog="mc-wiki-fetch-mcp",
         description=(
             "Minecraft Wiki MCP Server — supports stdio, SSE and "
-            "streamable-http transports in a single package."
+            "http transports in a single package."
         ),
     )
     parser.add_argument(
@@ -52,7 +57,7 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
         choices=list(config.SUPPORTED_TRANSPORTS),
         default=None,
         help=(
-            "MCP transport protocol "
+            "MCP transport protocol: stdio / sse / http "
             f"(default: env MC_WIKI_MCP_TRANSPORT or '{config.MCP_TRANSPORT}')"
         ),
     )
@@ -118,7 +123,7 @@ def apply_cli_overrides(args: argparse.Namespace) -> None:
     if args.name is not None:
         config.MCP_SERVER_NAME = args.name
     if args.transport is not None:
-        config.MCP_TRANSPORT = args.transport
+        config.MCP_TRANSPORT = normalize_transport(args.transport)
     if args.host is not None:
         config.MCP_HOST = args.host
     if args.port is not None:
@@ -131,7 +136,7 @@ def main(argv: Optional[list[str]] = None) -> None:
     apply_cli_overrides(args)
 
     logger = setup_logging(config.LOG_LEVEL)
-    transport = config.MCP_TRANSPORT
+    transport = normalize_transport(config.MCP_TRANSPORT)
     host = config.MCP_HOST
     port = config.MCP_PORT
 
@@ -167,10 +172,11 @@ def main(argv: Optional[list[str]] = None) -> None:
         elif transport == "sse":
             logger.warning(
                 "SSE transport is deprecated by the MCP spec; "
-                "prefer streamable-http for production."
+                "prefer http for production."
             )
             mcp_server.run(transport="sse")
         else:
+            # Public name is "http"; SDK transport name is streamable-http.
             mcp_server.run(transport="streamable-http")
     except KeyboardInterrupt:
         logger.info("服务器已停止")

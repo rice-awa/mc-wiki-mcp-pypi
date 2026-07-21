@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-A **MCP**-based **Minecraft Wiki** server that provides convenient access to Chinese Minecraft Wiki content. Supports **stdio**, **SSE** and **streamable-http** transports in a single package, and can be deployed quickly via **uvx**.
+A **MCP**-based **Minecraft Wiki** server that provides convenient access to Chinese Minecraft Wiki content. Supports **stdio**, **SSE** and **http** transports in a single package, and can be deployed quickly via **uvx**.
 
 Note: This project only provides the MCP layer on top of a Minecraft wiki API. For local API deployment, please visit [minecraft-wiki-fetch-api](https://github.com/rice-awa/minecraft-wiki-fetch-api).
 
@@ -15,7 +15,7 @@ Note: This project only provides the MCP layer on top of a Minecraft wiki API. F
 - ✅ **Page Existence Check**: Quick check if a page exists (including redirects)
 - 📚 **Namespace Listing**: List available wiki namespaces for targeted search
 - 🏥 **Health Monitoring**: Monitor backend Wiki API service status
-- 🔌 **Multi Transport**: `stdio` (Claude Desktop / local clients), `streamable-http` (remote/server), `sse` (legacy)
+- 🔌 **Multi Transport**: `stdio` (Claude Desktop / local clients), `http` (remote/server), `sse` (legacy)
 - 🚀 **One-Click Deployment**: Run via `uvx` without local install
 - ⚙️ **Env + CLI Config**: Flexible configuration via environment variables and CLI flags
 
@@ -27,15 +27,15 @@ Note: This project only provides the MCP layer on top of a Minecraft wiki API. F
 # stdio (default) — for Claude Desktop / local MCP clients
 uvx mc-wiki-fetch-mcp
 
-# streamable-http — for remote / server deployment
-uvx mc-wiki-fetch-mcp --transport streamable-http --host 0.0.0.0 --port 3001
+# http — for remote / server deployment
+uvx mc-wiki-fetch-mcp --transport http --host 0.0.0.0 --port 3001
 
 # Custom Wiki API URL
 uvx mc-wiki-fetch-mcp --api-url http://localhost:3000
 
 # Or via environment variables
 MC_WIKI_API_BASE_URL=http://localhost:3000 \
-MC_WIKI_MCP_TRANSPORT=streamable-http \
+MC_WIKI_MCP_TRANSPORT=http \
 uvx mc-wiki-fetch-mcp
 
 # Help
@@ -66,13 +66,13 @@ uvx mc-wiki-fetch-mcp --help
 
 3. **Restart Claude Desktop**
 
-### 🌐 Remote / HTTP clients (streamable-http)
+### 🌐 Remote / HTTP clients (http)
 
 ```bash
-uvx mc-wiki-fetch-mcp -t streamable-http --host 0.0.0.0 --port 3001
+uvx mc-wiki-fetch-mcp -t http --host 0.0.0.0 --port 3001
 ```
 
-Then point your MCP client to `http://<host>:3001/mcp` (default streamable-http path of the MCP Python SDK).
+Then point your MCP client to `http://<host>:3001/mcp` (default /mcp path of the MCP Python SDK).
 
 ## Configuration Options
 
@@ -82,7 +82,7 @@ Then point your MCP client to `http://<host>:3001/mcp` (default streamable-http 
 |----------------------|-------------|---------|
 | `MC_WIKI_API_BASE_URL` / `API_BASE_URL` | Wiki API base URL | `https://mcwiki.rice-awa.top` |
 | `MC_WIKI_API_TIMEOUT` | API request timeout (seconds) | `60` |
-| `MC_WIKI_MCP_TRANSPORT` | Transport: `stdio` / `sse` / `streamable-http` | `stdio` |
+| `MC_WIKI_MCP_TRANSPORT` | Transport: `stdio` / `sse` / `http` | `stdio` |
 | `MC_WIKI_MCP_HOST` | Bind host (HTTP/SSE) | `0.0.0.0` |
 | `MC_WIKI_MCP_PORT` | Bind port (HTTP/SSE) | `3001` |
 | `MC_WIKI_MCP_NAME` | MCP server display name | `Minecraft Wiki` |
@@ -92,7 +92,7 @@ Then point your MCP client to `http://<host>:3001/mcp` (default streamable-http 
 
 | Parameter | Description |
 |-----------|-------------|
-| `--transport`, `-t` | `stdio` / `sse` / `streamable-http` |
+| `--transport`, `-t` | `stdio` / `sse` / `http` |
 | `--host` | Bind host for HTTP/SSE |
 | `--port`, `-p` | Bind port for HTTP/SSE |
 | `--api-url` | Wiki API base URL |
@@ -132,8 +132,8 @@ pip install -e .
 # stdio
 mc-wiki-fetch-mcp
 
-# streamable-http
-mc-wiki-fetch-mcp -t streamable-http -p 3001
+# http
+mc-wiki-fetch-mcp -t http -p 3001
 ```
 
 ## Troubleshooting
@@ -183,6 +183,6 @@ MIT License — see [LICENSE](./LICENSE).
 
 **Quick tips**
 - 🚀 **Local client**: `uvx mc-wiki-fetch-mcp` (stdio)
-- 🌐 **Server mode**: `uvx mc-wiki-fetch-mcp -t streamable-http -p 3001`
+- 🌐 **Server mode**: `uvx mc-wiki-fetch-mcp -t http -p 3001`
 - ⚙️ **Configure**: env vars or CLI flags
 - 🔧 **Develop**: `pip install -e .`

@@ -5,7 +5,7 @@
 把原先仅 stdio 的 PyPI 包，与独立 HTTP 版工具设计合并为同一项目：
 
 - 一套工具定义
-- 三种传输：`stdio` / `sse` / `streamable-http`
+- 三种传输：`stdio` / `sse` / `http`
 - 仍可通过 `uvx mc-wiki-fetch-mcp` 一键运行
 
 ## 主要变更
@@ -43,7 +43,7 @@ HTTP 客户端由 `aiohttp` 改为 **`httpx`**。
 mc-wiki-fetch-mcp
 
 # 服务器模式
-mc-wiki-fetch-mcp -t streamable-http --host 0.0.0.0 --port 3001
+mc-wiki-fetch-mcp -t http --host 0.0.0.0 --port 3001
 
 # 兼容旧 SSE
 mc-wiki-fetch-mcp -t sse --port 3001

@@ -39,4 +39,8 @@ MCP_PORT = _env_int("MC_WIKI_MCP_PORT", 3001)
 LOG_LEVEL = _env("MC_WIKI_LOG_LEVEL", "INFO")
 LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
-SUPPORTED_TRANSPORTS = ("stdio", "sse", "streamable-http")
+# Public CLI/env names. "http" maps to the SDK transport "streamable-http".
+SUPPORTED_TRANSPORTS = ("stdio", "sse", "http")
+TRANSPORT_ALIASES = {
+    "streamable-http": "http",  # accept old name for compatibility
+}
